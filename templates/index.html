@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitArch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background: #fcfbf7;
+            color: #1f2937;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        .page-line {
+            width: 100%;
+            height: 2px;
+            background: #1f2937;
+            flex-shrink: 0;
+        }
+
+        header {
+            width: 100%;
+            position: relative;
+            z-index: 10;
+            border-bottom: 2px solid #1f2937;
+        }
+        .header-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            text-decoration: none;
+            color: #1f2937;
+            letter-spacing: -0.02em;
+        }
+        .logo .logo-accent {
+            color: #2563eb;
+        }
+        .header-links {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .header-links a {
+            padding: 0.4rem 0.9rem;
+            border-radius: 8px;
+            border: 2px solid #1f2937;
+            background: #fff5e8;
+            color: #1f2937;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 700;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            transition: all 0.08s ease;
+            box-shadow: 2px 2px 0px #1f2937;
+        }
+        .header-links a:hover {
+            background: #ffedd5;
+            box-shadow: 1px 1px 0px #1f2937;
+            transform: translate(1px, 1px);
+        }
+        .header-links a:active {
+            box-shadow: 0px 0px 0px #1f2937;
+            transform: translate(2px, 2px);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 4.25rem 2rem 2rem;
+            position: relative;
+            max-width: 900px;
+            width: 100%;
+            z-index: 10;
+        }
+
+        .hero {
+            position: relative;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+            padding: 0 2rem;
+        }
+        .hero-title-wrap {
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 1.25rem 2rem;
+        }
+        .sparkle-red {
+            position: absolute;
+            flex-shrink: 0;
+            height: auto;
+            width: 56px;
+            top: -20px;
+            left: -56px;
+            pointer-events: none;
+            user-select: none;
+        }
+        .sparkle-green {
+            position: absolute;
+            flex-shrink: 0;
+            height: auto;
+            width: 48px;
+            bottom: -20px;
+            right: -52px;
+            pointer-events: none;
+            user-select: none;
+        }
+        @media (min-width: 640px) {
+            .sparkle-red { width: 72px; top: -24px; left: -72px; }
+            .sparkle-green { width: 64px; bottom: -24px; right: -64px; }
+        }
+        @media (min-width: 1024px) {
+            .sparkle-red { width: 88px; top: -28px; left: -88px; }
+            .sparkle-green { width: 80px; bottom: -28px; right: -80px; }
+        }
+
+        h1 {
+            font-size: clamp(3rem, 7.5vw, 4.75rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            color: #1f2937;
+            text-align: center;
+        }
+        h1 .accent {
+            color: #2563eb;
+        }
+
+        .tagline {
+            color: #6b7280;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-top: 0.25rem;
+            margin-bottom: 1.25rem;
+            line-height: 1.5;
+            max-width: 560px;
+        }
+
+        .input-card {
+            position: relative;
+            background: #fff5e8;
+            border: 3px solid #1f2937;
+            border-radius: 14px;
+            padding: 2rem 2.25rem;
+            width: 100%;
+            max-width: 860px;
+            box-shadow: 6px 6px 0px #1f2937;
+        }
+        .input-card-corner-deco {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 4.5rem;
+            height: 4.5rem;
+            transform: translate(-60%, 25%);
+            pointer-events: none;
+            display: none;
+        }
+        @media (min-width: 768px) {
+            .input-card-corner-deco { display: block; }
+        }
+        .input-card-corner-deco img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: stretch;
+        }
+        .input-row input {
+            flex: 1;
+            min-width: 220px;
+            padding: 1.2rem 1.4rem;
+            border-radius: 10px;
+            border: 2px solid #93c5fd;
+            background: #fff;
+            color: #1f2937;
+            font-size: 1.15rem;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            outline: none;
+            box-shadow: 3px 3px 0px #1f2937;
+        }
+        .input-row input::placeholder { color: #9ca3af; }
+        .input-row input:focus {
+            border-color: #2563eb;
+            box-shadow: 3px 3px 0px #1f2937, 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+
+        .btn-analyze {
+            flex-shrink: 0;
+            padding: 1.2rem 1.8rem;
+            min-width: 140px;
+            border-radius: 10px;
+            border: 3px solid #1f2937;
+            background: #2563eb;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            cursor: pointer;
+            transition: all 0.08s ease;
+            white-space: nowrap;
+            box-shadow: 4px 4px 0px #1f2937;
+        }
+        .btn-analyze:hover {
+            box-shadow: 1px 1px 0px #1f2937;
+            transform: translate(3px, 3px);
+        }
+        .btn-analyze:active {
+            box-shadow: 0px 0px 0px #1f2937;
+            transform: translate(4px, 4px);
+        }
+        .btn-analyze:disabled {
+            background: #9ca3af;
+            color: #6b7280;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .examples {
+            margin-top: 1.25rem;
+        }
+        .examples p {
+            font-size: 0.95rem;
+            color: #6b7280;
+            margin-bottom: 0.6rem;
+            font-weight: 600;
+        }
+        .example-btns {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .example-btns button {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 3px solid #1f2937;
+            background: #fff5e8;
+            color: #1f2937;
+            font-size: 0.95rem;
+            font-weight: 700;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            cursor: pointer;
+            transition: all 0.08s ease;
+            box-shadow: 3px 3px 0px #1f2937;
+        }
+        .example-btns button:hover {
+            background: #ffedd5;
+            box-shadow: 1px 1px 0px #1f2937;
+            transform: translate(2px, 2px);
+        }
+        .example-btns button:active {
+            box-shadow: 0px 0px 0px #1f2937;
+            transform: translate(3px, 3px);
+        }
+
+        .progress-area {
+            margin-top: 1.5rem;
+            display: none;
+            width: 100%;
+        }
+        .progress-bar-bg {
+            background: #e5e7eb;
+            border: 2px solid #1f2937;
+            border-radius: 8px;
+            height: 10px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+            box-shadow: 2px 2px 0px #1f2937;
+        }
+        .progress-bar-fill {
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            height: 100%;
+            width: 0%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+        .progress-text {
+            font-size: 0.95rem;
+            color: #6b7280;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .error-msg {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: #fef2f2;
+            border: 3px solid #1f2937;
+            border-radius: 8px;
+            color: #dc2626;
+            font-size: 0.95rem;
+            display: none;
+            box-shadow: 3px 3px 0px #1f2937;
+        }
+
+        footer {
+            width: 100%;
+            padding: 1.2rem 2rem;
+            color: #6b7280;
+            font-size: 0.9rem;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            border-top: 2px solid #1f2937;
+        }
+        footer a { color: #2563eb; text-decoration: none; font-weight: 600; }
+        footer a:hover { color: #1d4ed8; }
+    </style>
+</head>
+<body>
+    <div class="page-line"></div>
+
+    <header>
+        <div class="header-inner">
+            <a href="/" class="logo">Git<span class="logo-accent">Arch</span></a>
+            <div class="header-links">
+                <a href="https://github.com/enesmanan/GitArch" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://github.com/enesmanan/GitArch/issues" target="_blank" rel="noopener">Issues</a>
+                <a href="https://github.com/enesmanan/GitArch/stargazers" target="_blank" rel="noopener">Star</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="hero">
+            <div class="hero-title-wrap">
+                <h1>Repository to<br><span class="accent">Architecture</span></h1>
+                <img src="/static/svg/sparkle-red.svg" class="sparkle-red" alt="">
+                <img src="/static/svg/sparkle-green.svg" class="sparkle-green" alt="">
+            </div>
+        </div>
+        <p class="tagline">
+            Understand code structure, quality, and design patterns of any GitHub repository using multi-agent AI.
+        </p>
+
+        <div class="input-card">
+            <div class="input-card-corner-deco" aria-hidden="true">
+                <img src="https://cdn.devdojo.com/images/january2023/shape-1.png" alt="">
+            </div>
+            <div class="input-row">
+                <input type="text" id="repoUrl" placeholder="https://github.com/username/repo" />
+                <button class="btn-analyze" id="analyzeBtn" onclick="startAnalysis()">Analyze</button>
+            </div>
+
+            <div class="examples">
+                <p>Try these example repositories:</p>
+                <div class="example-btns">
+                    <button onclick="setUrl('https://github.com/tiangolo/fastapi')">FastAPI</button>
+                    <button onclick="setUrl('https://github.com/pallets/flask')">Flask</button>
+                    <button onclick="setUrl('https://github.com/streamlit/streamlit')">Streamlit</button>
+                    <button onclick="setUrl('https://github.com/enesmanan/LLMAutoEDA')">LLMAutoEDA</button>
+                    <button onclick="setUrl('https://github.com/psf/requests')">Requests</button>
+                </div>
+            </div>
+
+            <div class="progress-area" id="progressArea">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressFill"></div>
+                </div>
+                <p class="progress-text" id="progressText">Starting...</p>
+            </div>
+
+            <div class="error-msg" id="errorMsg"></div>
+        </div>
+    </main>
+
+    <div class="page-line"></div>
+    <footer>
+        Made by <a href="https://github.com/enesmanan" target="_blank">Enes Fehmi Manan</a>
+        &middot; <a href="https://github.com/enesmanan/GitArch">View Source</a>
+    </footer>
+
+    <script>
+        function setUrl(url) {
+            document.getElementById('repoUrl').value = url;
+        }
+
+        async function startAnalysis() {
+            const url = document.getElementById('repoUrl').value.trim();
+            const btn = document.getElementById('analyzeBtn');
+            const progress = document.getElementById('progressArea');
+            const errorDiv = document.getElementById('errorMsg');
+
+            if (!url) return;
+
+            errorDiv.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+            progress.style.display = 'block';
+            updateProgress(0, 'Submitting...');
+
+            try {
+                const resp = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo_url: url }),
+                });
+                const data = await resp.json();
+
+                if (data.error) throw new Error(data.error);
+
+                pollStatus(data.job_id);
+            } catch (e) {
+                showError(e.message);
+                resetBtn();
+            }
+        }
+
+        function pollStatus(jobId) {
+            const interval = setInterval(async () => {
+                try {
+                    const resp = await fetch(`/status/${jobId}`);
+                    const data = await resp.json();
+
+                    updateProgress(data.progress, data.phase);
+
+                    if (data.status === 'completed') {
+                        clearInterval(interval);
+                        window.location.href = `/result/${jobId}`;
+                    } else if (data.status === 'failed') {
+                        clearInterval(interval);
+                        showError(data.error || 'Analysis failed');
+                        resetBtn();
+                    }
+                } catch (e) {
+                    clearInterval(interval);
+                    showError('Connection lost');
+                    resetBtn();
+                }
+            }, 2000);
+        }
+
+        function updateProgress(value, text) {
+            document.getElementById('progressFill').style.width = value + '%';
+            document.getElementById('progressText').textContent = text || 'Processing...';
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function resetBtn() {
+            const btn = document.getElementById('analyzeBtn');
+            btn.disabled = false;
+            btn.textContent = 'Analyze';
+            document.getElementById('progressArea').style.display = 'none';
+        }
+
+        document.getElementById('repoUrl').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') startAnalysis();
+        });
+    </script>
+</body>
+</html>
