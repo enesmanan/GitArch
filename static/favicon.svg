@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 64 64"
+     width="512px"
+     height="512px">
+    <defs><style>.cls-1{fill:#93c5fd;}.cls-2{fill:#bfdbfe;}.cls-3{fill:#60a5fa;}</style></defs>
+    <title>1</title>
+    <g id="Layer_70"
+       data-name="Layer 70">
+        <path class="cls-1" d="M52,35V16L41,4H14.42A2.42,2.42,0,0,0,12,6.42V35H8V49h4v8.58A2.42,2.42,0,0,0,14.42,60H49.58A2.42,2.42,0,0,0,52,57.58V49h4V35Z"/>
+        <polygon class="cls-2" points="52 16 41 16 41 4 52 16"/>
+        <rect class="cls-3" x="12" y="49" width="40" height="4"/>
+        <text x="32" y="46" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#1f2937" text-anchor="middle">.ARCH</text>
+        <path d="M57,35a1,1,0,0,0-1-1H53V16s0,0,0-.06a1,1,0,0,0,0-.21s0-.05,0-.07l0,0a1,1,0,0,0-.18-.29l-11-12a1,1,0,0,0-.29-.21l0,0-.06,0A1,1,0,0,0,41.11,3H14.42A3.42,3.42,0,0,0,11,6.42V34H8a1,1,0,0,0-1,1V49s0,0,0,.07a1.08,1.08,0,0,0,.34.68l0,.05L11,52.5v5.08A3.42,3.42,0,0,0,14.42,61H49.58A3.42,3.42,0,0,0,53,57.58V52.5l3.6-2.7,0-.05a1.08,1.08,0,0,0,.34-.68s0,0,0-.07ZM21,34V5H40V16a1,1,0,0,0,1,1H51V34ZM42,6.57,49.73,15H42ZM13,6.42A1.42,1.42,0,0,1,14.42,5H19V34H13ZM9,36H55V48H9Zm4,21.58V50h6v9H14.42A1.42,1.42,0,0,1,13,57.58ZM49.58,59H21V50H51v7.58A1.42,1.42,0,0,1,49.58,59Z"/>
+    </g>
+</svg>
