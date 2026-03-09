@@ -2,7 +2,7 @@
 
 ![banner](/static/banner.jpg)
 
-Turn any GitHub repository into an interactive report with summary, file structure, code overview, architecture diagrams, quality review, and feature suggestions — powered by multi-agent AI.
+Turn any GitHub repository into an interactive report with a summary, file structure, code overview, architecture diagrams, quality review, and feature suggestions, powered by multi-agent AI.
 
 ## Features
 
@@ -64,13 +64,18 @@ Open http://localhost:8000
 
 ### Agents
 
-| Agent | Tools | What it does |
-|---|---|---|
-| Summary | - | Reads the README and file tree, writes a 3-5 sentence explanation of what the project does and who it's for |
-| Structure | - | Analyzes the top-level modules and summarizes the purpose of each folder/component |
-| Code Overview | `read_file`, `search_code` | Reads each file, explains what it does, and groups related modules together under their directory |
-| Architecture | `read_file`, `search_code` | Builds a high-level Mermaid.js diagram, then searches for specific patterns (API flows, ML pipelines, RAG, auth, etc.) and draws separate diagrams for each one found |
-| Quality | - | Reviews the code for unused imports, duplication, missing error handling, security issues, poor naming, and missing type hints — rates overall quality 1-10 |
-| Features | - | Takes the full analysis as input and suggests up to 10 realistic improvements grouped by effort: quick wins, medium effort, and larger initiatives |
+<details>
+<summary><strong>Show Agents</strong></summary>
+
+| Agent | What it does |
+|---|---|
+| Summary | Reads the README and file tree, writes a 3-5 sentence explanation of what the project does and who it's for |
+| Structure | Analyzes the top-level modules and summarizes the purpose of each folder/component |
+| Code Overview | Reads each file, explains what it does, and groups related modules together under their directory |
+| Architecture | Builds a high-level Mermaid.js diagram, then searches for specific patterns (API flows, ML pipelines, RAG, auth, etc.) and draws separate diagrams for each one found |
+| Quality | Reviews the code for unused imports, duplication, missing error handling, security issues, poor naming, and missing type hints — rates overall quality 1-10 |
+| Features | Takes the full analysis as input and suggests up to 10 realistic improvements grouped by effort: quick wins, medium effort, and larger initiatives |
+
+</details>
 
 Made by [Enes Fehmi Manan](https://github.com/enesmanan) - [MIT](LICENSE)
