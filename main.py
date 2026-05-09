@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from agents.orchestrator import Orchestrator
-from repo_manager import cleanup_orphan_dirs
+from repo_manager import cleanup_orphan_dirs, parse_github_url
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +59,13 @@ async def analyze(request: Request, background_tasks: BackgroundTasks):
     body = await request.json()
     repo_url = body.get("repo_url", "").strip()
 
-    if not repo_url or "github.com" not in repo_url:
-        return JSONResponse({"error": "Please provide a valid GitHub URL"}, status_code=400)
+    if not repo_url:
+        return JSONResponse({"error": "Please provide a GitHub repository URL"}, status_code=400)
+
+    try:
+        parse_github_url(repo_url)
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
 
     _prune_old_jobs()
 

@@ -1,5 +1,6 @@
 import httpx
 import io
+import re
 import shutil
 import tempfile
 import time
@@ -12,12 +13,60 @@ from context_builder import SKIP_DIRS, SKIP_EXTENSIONS
 MAX_PATH_LEN = 200
 MAX_REPO_SIZE_MB = 100
 
+# Accepts:
+#   https://github.com/owner/repo
+#   https://github.com/owner/repo/
+#   https://github.com/owner/repo.git
+#   https://github.com/owner/repo/tree/<branch>
+#   https://github.com/owner/repo/blob/<branch>/<path>
+#   git@github.com:owner/repo[.git]
+#   github.com/owner/repo
+#   owner/repo
+# Captures: owner, repo, branch (optional)
+_GITHUB_URL_RE = re.compile(
+    r"""
+    ^
+    (?:                                              # optional prefix:
+        (?:https?://)?(?:www\.)?github\.com[/:]      #   https://github.com/ or github.com/ or github.com:
+        |
+        git@github\.com:                             #   SSH form
+    )?
+    (?P<owner>[A-Za-z0-9][\w.-]*)                    # owner
+    /
+    (?P<repo>[A-Za-z0-9][\w.-]*?)                    # repo (lazy)
+    (?:\.git)?                                       # optional .git
+    (?:/(?:tree|blob)/(?P<branch>[^/\s?#]+))?        # optional /tree|blob/<branch>
+    (?:[/?#].*)?                                     # optional trailing path/query/fragment
+    /?$
+    """,
+    re.VERBOSE,
+)
 
-def parse_github_url(url: str) -> tuple[str, str]:
-    parts = url.strip().rstrip("/").removesuffix(".git").split("/")
-    if len(parts) < 2 or "github.com" not in url:
-        raise ValueError(f"Invalid GitHub URL: {url}")
-    return parts[-2], parts[-1]
+
+def parse_github_url(url: str) -> tuple[str, str, str | None]:
+    """Parse a GitHub URL or shorthand into (owner, repo, branch_or_None).
+
+    Branch is extracted only if URL contains /tree/<branch> or /blob/<branch>.
+    Branch names containing slashes (e.g. 'feature/foo') are not supported via URL
+    and will be partially captured; users with such branches should use the default
+    branch URL form instead.
+    """
+    if not url:
+        raise ValueError("Empty URL")
+    cleaned = url.strip()
+    match = _GITHUB_URL_RE.match(cleaned)
+    if not match:
+        raise ValueError(
+            f"Invalid GitHub URL: '{url}'. "
+            "Expected formats: https://github.com/owner/repo, "
+            "git@github.com:owner/repo.git, or owner/repo"
+        )
+    owner = match.group("owner")
+    repo = match.group("repo")
+    branch = match.group("branch")
+    if not owner or not repo:
+        raise ValueError(f"Invalid GitHub URL: '{url}'")
+    return owner, repo, branch
 
 
 async def get_repo_info(owner: str, name: str) -> dict:
@@ -51,7 +100,7 @@ def _should_skip(rel_path: str) -> bool:
 
 
 async def download_repo(repo_url: str) -> Path:
-    owner, name = parse_github_url(repo_url)
+    owner, name, url_branch = parse_github_url(repo_url)
     info = await get_repo_info(owner, name)
 
     size_mb = info["size_kb"] / 1024
@@ -61,11 +110,17 @@ async def download_repo(repo_url: str) -> Path:
             f"Maximum supported size is {MAX_REPO_SIZE_MB} MB."
         )
 
-    branch = info["default_branch"]
+    # Use branch from URL if specified, otherwise default branch from API
+    branch = url_branch or info["default_branch"]
     zip_url = f"https://github.com/{owner}/{name}/archive/refs/heads/{branch}.zip"
 
     async with httpx.AsyncClient(follow_redirects=True, timeout=120) as client:
         resp = await client.get(zip_url)
+        if resp.status_code == 404:
+            raise ValueError(
+                f"Branch '{branch}' not found in {owner}/{name}. "
+                "Check the URL or omit the branch part to use the default branch."
+            )
         resp.raise_for_status()
 
     base_dir = Path(tempfile.gettempdir()) / "gitarch"
