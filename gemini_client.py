@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MODEL = "gemini-3-flash-preview"
+THINKING_LEVEL = types.ThinkingLevel.MINIMAL  # Lowest. If tool-using agents underperform, try LOW.
 MAX_RETRIES = 5
 RETRYABLE_CODES = {"429", "500", "503"}
 RETRYABLE_MESSAGES = {
@@ -91,6 +92,7 @@ class GeminiClient:
                     config=types.GenerateContentConfig(
                         system_instruction=system_prompt,
                         temperature=0.3,
+                        thinking_config=types.ThinkingConfig(thinking_level=THINKING_LEVEL),
                     ),
                 ),
                 label="generate",
@@ -144,6 +146,7 @@ class GeminiClient:
                         system_instruction=system_prompt,
                         tools=[tools],
                         temperature=0.3,
+                        thinking_config=types.ThinkingConfig(thinking_level=THINKING_LEVEL),
                     ),
                 ),
                 label=f"tool_loop step {step + 1}",
@@ -202,6 +205,7 @@ class GeminiClient:
                 config=types.GenerateContentConfig(
                     system_instruction=system_prompt,
                     temperature=0.3,
+                    thinking_config=types.ThinkingConfig(thinking_level=THINKING_LEVEL),
                 ),
             ),
             label="tool_loop final",
