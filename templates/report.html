@@ -288,6 +288,7 @@
         }
 
         .mermaid-container {
+            position: relative;
             background: #fff;
             border: 2px solid #1f2937;
             border-radius: 10px;
@@ -296,6 +297,44 @@
             text-align: center;
             overflow-x: auto;
             box-shadow: 3px 3px 0px #1f2937;
+        }
+        .copy-mermaid-btn {
+            position: absolute;
+            top: 0.6rem;
+            right: 0.6rem;
+            padding: 0.3rem 0.6rem;
+            background: #fff;
+            border: 1px solid #1f2937;
+            border-radius: 6px;
+            box-shadow: 2px 2px 0px #1f2937;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #1f2937;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s ease, background 0.1s ease, transform 0.08s ease, box-shadow 0.08s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            z-index: 5;
+        }
+        .mermaid-container:hover .copy-mermaid-btn,
+        .copy-mermaid-btn:focus-visible {
+            opacity: 1;
+        }
+        .copy-mermaid-btn:hover {
+            background: #fff5e8;
+        }
+        .copy-mermaid-btn:active {
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0px #1f2937;
+        }
+        .copy-mermaid-btn.copied {
+            background: #d1fae5;
+            border-color: #065f46;
+            color: #065f46;
+            opacity: 1;
         }
 
         @media (max-width: 640px) {
@@ -663,11 +702,45 @@
 
                 if (result.ok) {
                     div.innerHTML = result.svg;
+                    div.dataset.mermaidSource = code;
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-mermaid-btn';
+                    copyBtn.type = 'button';
+                    copyBtn.innerHTML = '<span aria-hidden="true">⧉</span> Copy';
+                    copyBtn.setAttribute('aria-label', 'Copy Mermaid source to clipboard');
+                    copyBtn.onclick = (ev) => copyMermaidSource(ev.currentTarget);
+                    div.appendChild(copyBtn);
                 } else {
                     div.innerHTML = `<p style="color:#6b7280;margin-bottom:0.5rem;font-size:0.85rem">Diagram source:</p><pre style="color:#374151;text-align:left;font-size:0.85rem;white-space:pre-wrap">${code}</pre>`;
                 }
                 pre.replaceWith(div);
             }
+        }
+
+        async function copyMermaidSource(button) {
+            const container = button.closest('.mermaid-container');
+            const source = container ? container.dataset.mermaidSource : '';
+            if (!source) return;
+            try {
+                await navigator.clipboard.writeText(source);
+            } catch (e) {
+                // Fallback for older browsers / non-secure contexts
+                const ta = document.createElement('textarea');
+                ta.value = source;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); } catch (_) {}
+                document.body.removeChild(ta);
+            }
+            const original = button.innerHTML;
+            button.classList.add('copied');
+            button.innerHTML = '<span aria-hidden="true">✓</span> Copied!';
+            setTimeout(() => {
+                button.classList.remove('copied');
+                button.innerHTML = original;
+            }, 1800);
         }
 
         const tabNames = ['summary', 'code', 'structure', 'architecture', 'quality', 'features'];
