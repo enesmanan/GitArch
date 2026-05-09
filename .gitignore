@@ -73,6 +73,7 @@ logs/
 *.log
 notes.md
 arge/
+docs/tr/
 
 # Jupyter
 .ipynb_checkpoints/
