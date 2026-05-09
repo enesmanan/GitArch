@@ -1,4 +1,6 @@
 import asyncio
+import logging
+import time
 from uuid import uuid4
 from pathlib import Path
 
@@ -8,12 +10,43 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from agents.orchestrator import Orchestrator
+from repo_manager import cleanup_orphan_dirs
+
+logger = logging.getLogger(__name__)
+
+JOB_TTL_SECONDS = 3600  # results expire after 1 hour
+MAX_JOBS_KEEP = 200     # hard cap to prevent unbounded growth
 
 app = FastAPI(title="GitArch")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
 jobs: dict[str, dict] = {}
+
+
+@app.on_event("startup")
+async def on_startup():
+    """Sweep orphan temp dirs left over from previous instance (e.g. after a crash)."""
+    try:
+        removed = cleanup_orphan_dirs(max_age_seconds=JOB_TTL_SECONDS)
+        if removed:
+            logger.info(f"Startup cleanup: removed {removed} orphan temp dirs")
+    except Exception as e:
+        logger.warning(f"Startup cleanup failed: {e}")
+
+
+def _prune_old_jobs() -> None:
+    """Lazy cleanup: remove expired jobs and enforce hard cap."""
+    cutoff = time.time() - JOB_TTL_SECONDS
+    expired = [jid for jid, j in jobs.items() if j.get("created_at", 0) < cutoff]
+    for jid in expired:
+        jobs.pop(jid, None)
+
+    if len(jobs) > MAX_JOBS_KEEP:
+        # drop oldest by created_at until under cap
+        sorted_jobs = sorted(jobs.items(), key=lambda kv: kv[1].get("created_at", 0))
+        for jid, _ in sorted_jobs[: len(jobs) - MAX_JOBS_KEEP]:
+            jobs.pop(jid, None)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -29,8 +62,17 @@ async def analyze(request: Request, background_tasks: BackgroundTasks):
     if not repo_url or "github.com" not in repo_url:
         return JSONResponse({"error": "Please provide a valid GitHub URL"}, status_code=400)
 
+    _prune_old_jobs()
+
     job_id = uuid4().hex[:12]
-    jobs[job_id] = {"status": "processing", "progress": 0, "phase": "Starting...", "result": None, "error": None}
+    jobs[job_id] = {
+        "status": "processing",
+        "progress": 0,
+        "phase": "Starting...",
+        "result": None,
+        "error": None,
+        "created_at": time.time(),
+    }
 
     background_tasks.add_task(_run_analysis, job_id, repo_url)
     return {"job_id": job_id}
@@ -40,7 +82,10 @@ async def analyze(request: Request, background_tasks: BackgroundTasks):
 async def status(job_id: str):
     job = jobs.get(job_id)
     if not job:
-        return JSONResponse({"error": "Job not found"}, status_code=404)
+        return JSONResponse(
+            {"error": "Job not found or expired (results are kept for 1 hour)"},
+            status_code=404,
+        )
     return {
         "status": job["status"],
         "progress": job["progress"],
@@ -53,7 +98,12 @@ async def status(job_id: str):
 async def result(request: Request, job_id: str):
     job = jobs.get(job_id)
     if not job:
-        return HTMLResponse("<h1>Job not found</h1>", status_code=404)
+        return HTMLResponse(
+            "<h1>Job not found or expired</h1>"
+            "<p>Reports are kept for 1 hour after generation. "
+            "<a href=\"/\">Run a new analysis</a>.</p>",
+            status_code=404,
+        )
     if job["status"] != "completed":
         return HTMLResponse("<h1>Analysis not ready yet</h1>", status_code=202)
 

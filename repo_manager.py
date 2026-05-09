@@ -1,14 +1,16 @@
 import httpx
-import zipfile
 import io
 import shutil
 import tempfile
+import time
+import zipfile
 from pathlib import Path, PurePosixPath
 from uuid import uuid4
 
 from context_builder import SKIP_DIRS, SKIP_EXTENSIONS
 
 MAX_PATH_LEN = 200
+MAX_REPO_SIZE_MB = 100
 
 
 def parse_github_url(url: str) -> tuple[str, str]:
@@ -18,7 +20,7 @@ def parse_github_url(url: str) -> tuple[str, str]:
     return parts[-2], parts[-1]
 
 
-async def get_default_branch(owner: str, name: str) -> str:
+async def get_repo_info(owner: str, name: str) -> dict:
     async with httpx.AsyncClient() as client:
         resp = await client.get(
             f"https://api.github.com/repos/{owner}/{name}",
@@ -30,7 +32,12 @@ async def get_default_branch(owner: str, name: str) -> str:
         if resp.status_code == 403:
             raise ValueError("GitHub API rate limit exceeded. Try again later.")
         resp.raise_for_status()
-        return resp.json()["default_branch"]
+        data = resp.json()
+        return {
+            "default_branch": data.get("default_branch", "main"),
+            # GitHub returns repo size in KB
+            "size_kb": int(data.get("size", 0) or 0),
+        }
 
 
 def _should_skip(rel_path: str) -> bool:
@@ -45,8 +52,16 @@ def _should_skip(rel_path: str) -> bool:
 
 async def download_repo(repo_url: str) -> Path:
     owner, name = parse_github_url(repo_url)
-    branch = await get_default_branch(owner, name)
+    info = await get_repo_info(owner, name)
 
+    size_mb = info["size_kb"] / 1024
+    if size_mb > MAX_REPO_SIZE_MB:
+        raise ValueError(
+            f"Repository too large ({size_mb:.1f} MB). "
+            f"Maximum supported size is {MAX_REPO_SIZE_MB} MB."
+        )
+
+    branch = info["default_branch"]
     zip_url = f"https://github.com/{owner}/{name}/archive/refs/heads/{branch}.zip"
 
     async with httpx.AsyncClient(follow_redirects=True, timeout=120) as client:
@@ -84,3 +99,20 @@ async def download_repo(repo_url: str) -> Path:
 def cleanup(repo_path: Path):
     if repo_path and repo_path.exists():
         shutil.rmtree(repo_path, ignore_errors=True)
+
+
+def cleanup_orphan_dirs(max_age_seconds: int = 3600) -> int:
+    """Remove temp repo directories older than max_age_seconds. Returns count removed."""
+    base_dir = Path(tempfile.gettempdir()) / "gitarch"
+    if not base_dir.exists():
+        return 0
+    cutoff = time.time() - max_age_seconds
+    removed = 0
+    for entry in base_dir.iterdir():
+        try:
+            if entry.is_dir() and entry.stat().st_mtime < cutoff:
+                shutil.rmtree(entry, ignore_errors=True)
+                removed += 1
+        except OSError:
+            continue
+    return removed
