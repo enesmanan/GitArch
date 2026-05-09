@@ -73,9 +73,19 @@ Open http://localhost:8000
 | Structure | Analyzes the top-level modules and summarizes the purpose of each folder/component |
 | Code Overview | Reads each file, explains what it does, and groups related modules together under their directory |
 | Architecture | Builds a high-level Mermaid.js diagram, then searches for specific patterns (API flows, ML pipelines, RAG, auth, etc.) and draws separate diagrams for each one found |
-| Quality | Reviews the code for unused imports, duplication, missing error handling, security issues, poor naming, and missing type hints — rates overall quality 1-10 |
+| Quality | Reviews the code for unused imports, duplication, missing error handling, security issues, poor naming, and missing type hints - rates overall quality 1-10 |
 | Features | Takes the full analysis as input and suggests up to 10 realistic improvements grouped by effort: quick wins, medium effort, and larger initiatives |
 
 </details>
+
+## Documentation
+
+For deeper details about how the project is structured and how the AI pipeline works:
+
+- [System Overview](docs/system-overview.md) - high-level architecture, request lifecycle, and data flow
+- [Agents](docs/agents.md) - detailed reference for each of the six AI agents
+- [Documentation Index](docs/README.md) - full list of available docs
+
+## License
 
 Made by [Enes Fehmi Manan](https://github.com/enesmanan) - [MIT](LICENSE)
