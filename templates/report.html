@@ -30,7 +30,7 @@
 
         header {
             position: relative;
-            z-index: 10;
+            z-index: 30;
             border-bottom: 3px solid #1f2937;
             background: #fff;
         }
@@ -85,6 +85,78 @@
         .btn-back:active {
             box-shadow: 0px 0px 0px #1f2937;
             transform: translate(2px, 2px);
+        }
+
+        .export-wrapper {
+            position: relative;
+        }
+        .btn-export {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 3px solid #1f2937;
+            background: #fff5e8;
+            color: #1f2937;
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            cursor: pointer;
+            transition: all 0.08s ease;
+            box-shadow: 3px 3px 0px #1f2937;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .btn-export:hover {
+            background: #ffedd5;
+            box-shadow: 1px 1px 0px #1f2937;
+            transform: translate(1px, 1px);
+        }
+        .btn-export:active {
+            box-shadow: 0px 0px 0px #1f2937;
+            transform: translate(2px, 2px);
+        }
+        .export-caret {
+            font-size: 0.7rem;
+            line-height: 1;
+        }
+        .export-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 200px;
+            background: #fff;
+            border: 3px solid #1f2937;
+            border-radius: 8px;
+            box-shadow: 4px 4px 0px #1f2937;
+            padding: 0.4rem;
+            display: none;
+            z-index: 50;
+        }
+        .export-menu.open {
+            display: block;
+        }
+        .export-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            background: none;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #1f2937;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.1s ease;
+        }
+        .export-item:hover {
+            background: #fff5e8;
+        }
+        .export-item-icon {
+            font-size: 1rem;
         }
 
         .tabs-wrapper {
@@ -232,6 +304,76 @@
             .tabs { gap: 0; }
             .tab-btn { padding: 0.7rem 0.8rem; font-size: 0.8rem; }
         }
+
+        @media print {
+            @page {
+                margin: 1.5cm;
+                size: A4;
+            }
+            body {
+                background: #fff;
+                color: #000;
+            }
+            .top-line,
+            .tabs-wrapper,
+            .btn-back,
+            .export-wrapper,
+            .repo-info > a {
+                display: none !important;
+            }
+            header {
+                border-bottom: 2px solid #000;
+                padding-bottom: 0.5rem;
+            }
+            .header-inner {
+                padding: 0.5rem 0;
+            }
+            .content {
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+            .tab-content {
+                display: block !important;
+                animation: none !important;
+                page-break-before: always;
+            }
+            .tab-content:first-of-type {
+                page-break-before: auto;
+            }
+            .tab-content h1 {
+                color: #000;
+                font-size: 1.4rem;
+                margin-bottom: 1rem;
+                margin-top: 0;
+            }
+            .markdown-body h2 {
+                color: #000;
+                border-bottom: 1px solid #000;
+                page-break-after: avoid;
+            }
+            .markdown-body h3 {
+                page-break-after: avoid;
+            }
+            .markdown-body pre,
+            .mermaid-container,
+            .file-tree-container {
+                box-shadow: none !important;
+                page-break-inside: avoid;
+            }
+            .mermaid-container,
+            .file-tree-container,
+            .markdown-body pre {
+                border: 1px solid #999;
+            }
+            .markdown-body a {
+                color: #000;
+                text-decoration: underline;
+            }
+            .copy-mermaid-btn {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -242,6 +384,19 @@
             <a href="/" class="logo">Git<span class="logo-accent">Arch</span></a>
             <div class="repo-info">
                 <a href="{{ repo_url }}" target="_blank">{{ repo_url.split('/')[-2] }}/{{ repo_url.split('/')[-1] }}</a>
+                <div class="export-wrapper">
+                    <button class="btn-export" id="exportBtn" onclick="toggleExportMenu(event)">
+                        Export <span class="export-caret">▾</span>
+                    </button>
+                    <div class="export-menu" id="exportMenu">
+                        <button class="export-item" onclick="exportPDF()">
+                            <span class="export-item-icon">📄</span> Export as PDF
+                        </button>
+                        <button class="export-item" onclick="exportMarkdown()">
+                            <span class="export-item-icon">📝</span> Export as Markdown
+                        </button>
+                    </div>
+                </div>
                 <a href="/" class="btn-back">← New Analysis</a>
             </div>
         </div>
@@ -308,7 +463,90 @@
             architecture: {{ architecture | tojson }},
             quality: {{ quality | tojson }},
             features: {{ features | tojson }},
+            file_tree: {{ file_tree | tojson }},
+            repo_url: {{ repo_url | tojson }},
         };
+
+        function toggleExportMenu(event) {
+            event.stopPropagation();
+            document.getElementById('exportMenu').classList.toggle('open');
+        }
+
+        function closeExportMenu() {
+            document.getElementById('exportMenu').classList.remove('open');
+        }
+
+        function exportPDF() {
+            closeExportMenu();
+            window.print();
+        }
+
+        function exportMarkdown() {
+            closeExportMenu();
+            const repo = rawData.repo_url || 'repository';
+            const repoShort = repo.split('/').slice(-2).join('/');
+            const today = new Date().toISOString().split('T')[0];
+
+            const sections = [
+                `# GitArch Analysis: ${repoShort}`,
+                '',
+                `> Repository: ${repo}`,
+                `> Generated: ${today}`,
+                '',
+                '---',
+                '',
+                '## Summary',
+                '',
+                rawData.summary || '_No data_',
+                '',
+                '## Repository Structure',
+                '',
+                '```',
+                rawData.file_tree || '_No tree_',
+                '```',
+                '',
+                rawData.structure || '',
+                '',
+                '## Code Overview',
+                '',
+                rawData.code || '_No data_',
+                '',
+                '## Architecture',
+                '',
+                rawData.architecture || '_No data_',
+                '',
+                '## Code Quality',
+                '',
+                rawData.quality || '_No data_',
+                '',
+                '## Feature Suggestions',
+                '',
+                rawData.features || '_No data_',
+            ];
+
+            const content = sections.join('\n');
+            const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gitarch-${repoShort.replace('/', '-')}-${today}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('exportMenu');
+            const btn = document.getElementById('exportBtn');
+            if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)) {
+                closeExportMenu();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeExportMenu();
+        });
 
         mermaid.initialize({
             startOnLoad: false,
