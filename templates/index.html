@@ -339,6 +339,38 @@
         }
         footer a { color: #2563eb; text-decoration: none; font-weight: 600; }
         footer a:hover { color: #1d4ed8; }
+
+        /* Mobile responsive overrides - desktop layout is preserved above */
+        @media (max-width: 640px) {
+            main { padding: 2rem 1rem 1.5rem; }
+        }
+
+        @media (max-width: 480px) {
+            .input-row { flex-direction: column; }
+            .input-row input {
+                min-width: 0;
+                width: 100%;
+                font-size: 1rem;
+                padding: 1rem 1.1rem;
+            }
+            .btn-analyze {
+                width: 100%;
+                min-width: 0;
+            }
+            .input-card { padding: 1.25rem 1rem; }
+
+            .header-inner { padding: 0.75rem 1rem; }
+            .header-links { gap: 0.35rem; }
+            .header-links a {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.78rem;
+            }
+            .header-links a[href*="issues"] { display: none; }
+
+            .hero { padding: 0 1rem; }
+            .sparkle-red, .sparkle-green { display: none; }
+            h1 { font-size: clamp(2rem, 10vw, 3rem); }
+        }
     </style>
 </head>
 <body>

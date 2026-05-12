@@ -15,6 +15,8 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        html { scroll-padding-top: 60px; }
+
         body {
             font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             background: #fcfbf7;
@@ -337,11 +339,71 @@
             opacity: 1;
         }
 
+        /* Touch devices have no hover - keep copy button always visible */
+        @media (hover: none) {
+            .copy-mermaid-btn {
+                opacity: 0.85;
+            }
+        }
+
         @media (max-width: 640px) {
-            .content { padding: 1rem; }
+            .content { padding: 1.5rem 1rem 3rem; }
             h1 { font-size: 1.2rem; }
             .tabs { gap: 0; }
             .tab-btn { padding: 0.7rem 0.8rem; font-size: 0.8rem; }
+            .mermaid-container { padding: 1rem 0.75rem; }
+            .markdown-body pre { padding: 0.75rem; }
+            .file-tree-container { padding: 1rem; }
+            .markdown-body { font-size: 0.92rem; }
+
+            .header-inner {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                padding: 0.75rem 1rem;
+            }
+            .repo-info {
+                order: 2;
+                width: 100%;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+            .repo-info > a:first-child {
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-size: 0.8rem;
+            }
+            .btn-back, .btn-export {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.7rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .export-menu {
+                right: auto;
+                left: 0;
+                min-width: 0;
+                width: calc(100vw - 2rem);
+                max-width: 280px;
+            }
+        }
+
+        /* Tab strip horizontal scroll hint - pseudo-element does not affect sticky layout */
+        @media (max-width: 768px) {
+            .tabs-wrapper::after {
+                content: '';
+                position: absolute;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                width: 30px;
+                background: linear-gradient(to left, rgba(255, 255, 255, 0.95), transparent);
+                pointer-events: none;
+            }
         }
 
         @media print {
