@@ -300,10 +300,13 @@
             overflow-x: auto;
             box-shadow: 3px 3px 0px #1f2937;
         }
-        .copy-mermaid-btn {
+        .mermaid-actions {
             position: absolute;
             top: 0.6rem;
             right: 0.6rem;
+            z-index: 5;
+        }
+        .mermaid-action-trigger {
             padding: 0.3rem 0.6rem;
             background: #fff;
             border: 1px solid #1f2937;
@@ -314,36 +317,73 @@
             font-weight: 600;
             color: #1f2937;
             cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.15s ease, background 0.1s ease, transform 0.08s ease, box-shadow 0.08s ease;
             display: inline-flex;
             align-items: center;
             gap: 0.3rem;
-            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.15s ease, background 0.1s ease, transform 0.08s ease, box-shadow 0.08s ease;
         }
-        .mermaid-container:hover .copy-mermaid-btn,
-        .copy-mermaid-btn:focus-visible {
+        .mermaid-container:hover .mermaid-action-trigger,
+        .mermaid-action-trigger:focus-visible,
+        .mermaid-actions.open .mermaid-action-trigger {
             opacity: 1;
         }
-        .copy-mermaid-btn:hover {
-            background: #fff5e8;
-        }
-        .copy-mermaid-btn:active {
+        .mermaid-action-trigger:hover { background: #fff5e8; }
+        .mermaid-action-trigger:active {
             transform: translate(1px, 1px);
             box-shadow: 1px 1px 0px #1f2937;
         }
-        .copy-mermaid-btn.copied {
+
+        .mermaid-action-menu {
+            position: absolute;
+            top: calc(100% + 0.35rem);
+            right: 0;
+            min-width: 180px;
+            background: #fff;
+            border: 2px solid #1f2937;
+            border-radius: 8px;
+            box-shadow: 3px 3px 0px #1f2937;
+            padding: 0.3rem;
+            display: none;
+            flex-direction: column;
+            gap: 0.15rem;
+            text-align: left;
+        }
+        .mermaid-actions.open .mermaid-action-menu { display: flex; }
+
+        .mermaid-action-item {
+            padding: 0.5rem 0.7rem;
+            background: #fff;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 0.82rem;
+            color: #1f2937;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .mermaid-action-item:hover { background: #fff5e8; }
+        .mermaid-action-item.done {
             background: #d1fae5;
-            border-color: #065f46;
             color: #065f46;
-            opacity: 1;
+        }
+        .mermaid-action-item.failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .mermaid-action-item-icon {
+            display: inline-block;
+            width: 1em;
+            text-align: center;
         }
 
-        /* Touch devices have no hover - keep copy button always visible */
+        /* Touch devices have no hover - keep trigger always visible */
         @media (hover: none) {
-            .copy-mermaid-btn {
-                opacity: 0.85;
-            }
+            .mermaid-action-trigger { opacity: 0.85; }
         }
 
         @media (max-width: 640px) {
@@ -389,6 +429,11 @@
                 min-width: 0;
                 width: calc(100vw - 2rem);
                 max-width: 280px;
+            }
+            .mermaid-action-menu {
+                min-width: 0;
+                width: max-content;
+                max-width: calc(100vw - 1.5rem);
             }
         }
 
@@ -471,7 +516,7 @@
                 color: #000;
                 text-decoration: underline;
             }
-            .copy-mermaid-btn {
+            .mermaid-actions {
                 display: none !important;
             }
         }
@@ -653,6 +698,10 @@
             startOnLoad: false,
             securityLevel: 'loose',
             theme: 'neutral',
+            // htmlLabels: false renders labels as native SVG <text> instead of foreignObject,
+            // which keeps the SVG cleanly rasterizable to PNG via canvas.
+            flowchart: { htmlLabels: false, useMaxWidth: true },
+            sequence: { useMaxWidth: true },
             themeVariables: {
                 primaryColor: '#dbeafe',
                 primaryTextColor: '#1f2937',
@@ -765,13 +814,7 @@
                 if (result.ok) {
                     div.innerHTML = result.svg;
                     div.dataset.mermaidSource = code;
-                    const copyBtn = document.createElement('button');
-                    copyBtn.className = 'copy-mermaid-btn';
-                    copyBtn.type = 'button';
-                    copyBtn.innerHTML = '<span aria-hidden="true">⧉</span> Copy';
-                    copyBtn.setAttribute('aria-label', 'Copy Mermaid source to clipboard');
-                    copyBtn.onclick = (ev) => copyMermaidSource(ev.currentTarget);
-                    div.appendChild(copyBtn);
+                    div.appendChild(buildMermaidActions());
                 } else {
                     div.innerHTML = `<p style="color:#6b7280;margin-bottom:0.5rem;font-size:0.85rem">Diagram source:</p><pre style="color:#374151;text-align:left;font-size:0.85rem;white-space:pre-wrap">${code}</pre>`;
                 }
@@ -779,14 +822,203 @@
             }
         }
 
-        async function copyMermaidSource(button) {
-            const container = button.closest('.mermaid-container');
-            const source = container ? container.dataset.mermaidSource : '';
+        // ---------- Mermaid diagram export (Copy source / Download SVG / Download PNG) ----------
+
+        function buildMermaidActions() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'mermaid-actions';
+
+            const trigger = document.createElement('button');
+            trigger.className = 'mermaid-action-trigger';
+            trigger.type = 'button';
+            trigger.setAttribute('aria-haspopup', 'true');
+            trigger.setAttribute('aria-expanded', 'false');
+            trigger.setAttribute('aria-label', 'Diagram export menu');
+            trigger.innerHTML = 'Export <span aria-hidden="true">▾</span>';
+            trigger.onclick = (ev) => {
+                ev.stopPropagation();
+                toggleMermaidMenu(ev.currentTarget);
+            };
+
+            const menu = document.createElement('div');
+            menu.className = 'mermaid-action-menu';
+            menu.setAttribute('role', 'menu');
+            menu.innerHTML = `
+                <button type="button" class="mermaid-action-item" data-action="copy" role="menuitem">
+                    <span class="mermaid-action-item-icon" aria-hidden="true">⧉</span> Copy source
+                </button>
+                <button type="button" class="mermaid-action-item" data-action="svg" role="menuitem">
+                    <span class="mermaid-action-item-icon" aria-hidden="true">⬇</span> Download SVG
+                </button>
+                <button type="button" class="mermaid-action-item" data-action="png" role="menuitem">
+                    <span class="mermaid-action-item-icon" aria-hidden="true">⬇</span> Download PNG
+                </button>
+            `;
+            menu.addEventListener('click', handleMermaidAction);
+
+            wrapper.appendChild(trigger);
+            wrapper.appendChild(menu);
+            return wrapper;
+        }
+
+        function closeAllMermaidMenus(except) {
+            document.querySelectorAll('.mermaid-actions.open').forEach(el => {
+                if (el === except) return;
+                el.classList.remove('open');
+                const t = el.querySelector('.mermaid-action-trigger');
+                if (t) t.setAttribute('aria-expanded', 'false');
+            });
+        }
+
+        function toggleMermaidMenu(trigger) {
+            const actions = trigger.parentElement;
+            const isOpen = actions.classList.contains('open');
+            closeAllMermaidMenus(actions);
+            actions.classList.toggle('open', !isOpen);
+            trigger.setAttribute('aria-expanded', String(!isOpen));
+        }
+
+        document.addEventListener('click', (ev) => {
+            if (!ev.target.closest('.mermaid-actions')) {
+                closeAllMermaidMenus();
+            }
+        });
+        document.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Escape') closeAllMermaidMenus();
+        });
+
+        async function handleMermaidAction(ev) {
+            const item = ev.target.closest('.mermaid-action-item');
+            if (!item) return;
+            ev.stopPropagation();
+            const container = item.closest('.mermaid-container');
+            if (!container) return;
+            const action = item.dataset.action;
+
+            try {
+                if (action === 'copy') {
+                    await copyMermaidSourceFromContainer(container, item);
+                } else if (action === 'svg') {
+                    downloadMermaidSVG(container, item);
+                } else if (action === 'png') {
+                    await downloadMermaidPNG(container, item);
+                }
+            } catch (e) {
+                console.error('Mermaid action failed', e);
+                flashItem(item, 'Failed', false);
+            }
+
+            setTimeout(() => {
+                const actions = container.querySelector('.mermaid-actions');
+                if (actions) {
+                    actions.classList.remove('open');
+                    const t = actions.querySelector('.mermaid-action-trigger');
+                    if (t) t.setAttribute('aria-expanded', 'false');
+                }
+            }, 900);
+        }
+
+        function flashItem(item, text, success = true) {
+            const original = item.innerHTML;
+            const cls = success ? 'done' : 'failed';
+            const glyph = success ? '✓' : '✕';
+            item.classList.add(cls);
+            item.innerHTML = `<span class="mermaid-action-item-icon" aria-hidden="true">${glyph}</span> ${text}`;
+            setTimeout(() => {
+                item.classList.remove(cls);
+                item.innerHTML = original;
+            }, 1600);
+        }
+
+        function triggerDownload(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function getMermaidFilename(container, ext) {
+            const repoUrl = (typeof rawData !== 'undefined' && rawData.repo_url) || '';
+            const parts = repoUrl.replace(/\.git$/, '').split('/').filter(Boolean);
+            const slug = parts.length >= 2 ? `${parts[parts.length - 2]}-${parts[parts.length - 1]}` : 'diagram';
+            const idx = Array.from(document.querySelectorAll('.mermaid-container')).indexOf(container) + 1;
+            return `gitarch-${slug}-diagram-${idx}.${ext}`;
+        }
+
+        // Replace every <foreignObject> with a plain SVG <text> placed at the same
+        // bounding box centre. Canvas cannot rasterize foreignObject content (browser
+        // security), so without this step PNG export silently fails for any Mermaid
+        // diagram type that still embeds HTML labels (class, state, ER, etc.).
+        function inlineForeignObjectsAsText(svgClone) {
+            const fos = svgClone.querySelectorAll('foreignObject');
+            fos.forEach(fo => {
+                const text = (fo.textContent || '').replace(/\s+/g, ' ').trim();
+                const x = parseFloat(fo.getAttribute('x') || '0') || 0;
+                const y = parseFloat(fo.getAttribute('y') || '0') || 0;
+                const w = parseFloat(fo.getAttribute('width') || '0') || 0;
+                const h = parseFloat(fo.getAttribute('height') || '0') || 0;
+
+                const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textEl.setAttribute('x', String(x + w / 2));
+                textEl.setAttribute('y', String(y + h / 2));
+                textEl.setAttribute('text-anchor', 'middle');
+                textEl.setAttribute('dominant-baseline', 'middle');
+                textEl.setAttribute('font-family', "'Plus Jakarta Sans', system-ui, sans-serif");
+                textEl.setAttribute('font-size', '13');
+                textEl.setAttribute('fill', '#1f2937');
+                textEl.textContent = text;
+
+                if (fo.parentNode) fo.parentNode.replaceChild(textEl, fo);
+            });
+        }
+
+        function serializeMermaidSVG(container, { forCanvas = false } = {}) {
+            const svg = container.querySelector('svg');
+            if (!svg) throw new Error('SVG not found');
+
+            const clone = svg.cloneNode(true);
+            if (!clone.getAttribute('xmlns')) {
+                clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            }
+            if (!clone.getAttribute('xmlns:xlink')) {
+                clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+            }
+
+            // Mermaid sometimes emits only viewBox without width/height; derive them so the
+            // exported SVG opens with a real size in editors and rasterizers.
+            const viewBox = clone.getAttribute('viewBox');
+            if (viewBox) {
+                const parts = viewBox.split(/\s+/).map(Number);
+                if (parts.length === 4) {
+                    if (!clone.getAttribute('width')) clone.setAttribute('width', String(parts[2]));
+                    if (!clone.getAttribute('height')) clone.setAttribute('height', String(parts[3]));
+                }
+            }
+
+            // Embed a font-family fallback so the file remains readable when opened
+            // outside the browser where the web font is not available.
+            const styleTag = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+            styleTag.textContent = "text, tspan { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; }";
+            clone.insertBefore(styleTag, clone.firstChild);
+
+            // Canvas cannot rasterize foreignObject - flatten to SVG <text> for PNG only.
+            if (forCanvas) {
+                inlineForeignObjectsAsText(clone);
+            }
+
+            return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone);
+        }
+
+        async function copyMermaidSourceFromContainer(container, item) {
+            const source = container.dataset.mermaidSource;
             if (!source) return;
             try {
                 await navigator.clipboard.writeText(source);
             } catch (e) {
-                // Fallback for older browsers / non-secure contexts
                 const ta = document.createElement('textarea');
                 ta.value = source;
                 ta.style.position = 'fixed';
@@ -796,13 +1028,145 @@
                 try { document.execCommand('copy'); } catch (_) {}
                 document.body.removeChild(ta);
             }
-            const original = button.innerHTML;
-            button.classList.add('copied');
-            button.innerHTML = '<span aria-hidden="true">✓</span> Copied!';
-            setTimeout(() => {
-                button.classList.remove('copied');
-                button.innerHTML = original;
-            }, 1800);
+            flashItem(item, 'Copied!');
+        }
+
+        function downloadMermaidSVG(container, item) {
+            const source = serializeMermaidSVG(container);
+            const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+            triggerDownload(blob, getMermaidFilename(container, 'svg'));
+            flashItem(item, 'Saved');
+        }
+
+        function loadImage(src, timeoutMs = 8000) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                let done = false;
+                const timer = setTimeout(() => {
+                    if (done) return;
+                    done = true;
+                    reject(new Error('Image load timed out'));
+                }, timeoutMs);
+                img.onload = () => {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(timer);
+                    resolve(img);
+                };
+                img.onerror = (ev) => {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(timer);
+                    reject(new Error('Image load failed (browser refused to rasterize the SVG)'));
+                };
+                img.src = src;
+            });
+        }
+
+        // Wait for web fonts but never block forever - PNG must succeed even if fonts hang.
+        async function waitForFontsWithTimeout(timeoutMs = 2000) {
+            if (!document.fonts || !document.fonts.ready) return;
+            try {
+                await Promise.race([
+                    document.fonts.ready,
+                    new Promise(resolve => setTimeout(resolve, timeoutMs)),
+                ]);
+            } catch (_) {}
+        }
+
+        function svgSourceToDataUrl(source) {
+            // utf8 -> base64 (handles non-ASCII characters in labels)
+            const b64 = btoa(unescape(encodeURIComponent(source)));
+            return 'data:image/svg+xml;base64,' + b64;
+        }
+
+        async function downloadMermaidPNG(container, item) {
+            const source = serializeMermaidSVG(container, { forCanvas: true });
+            const svg = container.querySelector('svg');
+
+            // After inlineForeignObjectsAsText this should be empty, but log if not.
+            if (source.indexOf('<foreignObject') !== -1) {
+                console.warn('PNG export: SVG still contains foreignObject after flattening.');
+            }
+
+            let width = 0;
+            let height = 0;
+            const viewBox = svg.getAttribute('viewBox');
+            if (viewBox) {
+                const parts = viewBox.split(/\s+/).map(Number);
+                if (parts.length === 4) {
+                    width = parts[2];
+                    height = parts[3];
+                }
+            }
+            if (!width || !height) {
+                const rect = svg.getBoundingClientRect();
+                width = rect.width;
+                height = rect.height;
+            }
+            if (!width || !height) {
+                throw new Error('Unable to determine SVG dimensions');
+            }
+
+            await waitForFontsWithTimeout();
+
+            // Cap canvas size to stay below browser limits (~16384 px per side, with
+            // headroom for total pixel count on lower-end devices).
+            const MAX_CANVAS_DIM = 8000;
+            let scale = 2;
+            const longest = Math.max(width, height);
+            if (longest * scale > MAX_CANVAS_DIM) {
+                scale = Math.max(1, Math.floor(MAX_CANVAS_DIM / longest));
+            }
+
+            // Try Blob URL first, fall back to inline data URL. Some browsers refuse to
+            // rasterize SVGs loaded from blob: URLs (notably older Firefox builds) while
+            // others reject data URLs in CSP-restricted contexts. Trying both maximises
+            // the chance of a successful conversion.
+            const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+            const blobUrl = URL.createObjectURL(blob);
+
+            let img;
+            let firstError;
+            try {
+                try {
+                    img = await loadImage(blobUrl);
+                } catch (e) {
+                    firstError = e;
+                    console.warn('PNG export: blob URL load failed, retrying with data URL', e);
+                    img = await loadImage(svgSourceToDataUrl(source));
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.ceil(width * scale);
+                canvas.height = Math.ceil(height * scale);
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.setTransform(scale, 0, 0, scale, 0, 0);
+                try {
+                    ctx.drawImage(img, 0, 0, width, height);
+                } catch (e) {
+                    throw new Error('Canvas drawImage failed: ' + (e && e.message ? e.message : e));
+                }
+
+                let pngBlob;
+                try {
+                    pngBlob = await new Promise((resolve, reject) => {
+                        canvas.toBlob(
+                            (b) => b ? resolve(b) : reject(new Error('Canvas is tainted or toBlob failed')),
+                            'image/png'
+                        );
+                    });
+                } catch (e) {
+                    throw new Error('PNG encode failed: ' + (e && e.message ? e.message : e));
+                }
+
+                triggerDownload(pngBlob, getMermaidFilename(container, 'png'));
+                flashItem(item, 'Saved');
+            } finally {
+                URL.revokeObjectURL(blobUrl);
+            }
         }
 
         const tabNames = ['summary', 'code', 'structure', 'architecture', 'quality', 'features'];
@@ -814,6 +1178,7 @@
             document.getElementById(`tab-${name}`).classList.add('active');
             document.querySelectorAll('.tab-btn')[tabNames.indexOf(name)].classList.add('active');
 
+            closeAllMermaidMenus();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
