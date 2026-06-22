@@ -51,7 +51,7 @@ def _prune_old_jobs() -> None:
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request, "preload_url": ""})
 
 
 @app.post("/analyze")
@@ -117,6 +117,18 @@ async def result(request: Request, job_id: str):
         "repo_url": job.get("repo_url", ""),
         **job["result"],
     })
+
+
+@app.get("/{owner}/{repo}/tree/{branch:path}", response_class=HTMLResponse)
+async def shortlink_branch(request: Request, owner: str, repo: str, branch: str):
+    repo_url = f"https://github.com/{owner}/{repo}/tree/{branch}"
+    return templates.TemplateResponse("index.html", {"request": request, "preload_url": repo_url})
+
+
+@app.get("/{owner}/{repo}", response_class=HTMLResponse)
+async def shortlink(request: Request, owner: str, repo: str):
+    repo_url = f"https://github.com/{owner}/{repo}"
+    return templates.TemplateResponse("index.html", {"request": request, "preload_url": repo_url})
 
 
 async def _run_analysis(job_id: str, repo_url: str):

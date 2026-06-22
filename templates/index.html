@@ -437,6 +437,17 @@
     </footer>
 
     <script>
+        // Auto-start analysis for deep links: gitarch.enesmanan.dev/owner/repo
+        (function () {
+            const preload = {{ preload_url | tojson }};
+            if (preload) {
+                document.addEventListener('DOMContentLoaded', function () {
+                    document.getElementById('repoUrl').value = preload;
+                    startAnalysis();
+                });
+            }
+        }());
+
         function setUrl(url) {
             document.getElementById('repoUrl').value = url;
         }
